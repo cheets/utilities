@@ -1,0 +1,96 @@
+#!/usr/bin/python
+
+"""
+Licensed under the MIT license
+(c) Henri Koskenranta 2013
+https://github.com/cheets/utilities
+
+Run with -h / --help to open usage manual
+"""
+
+from os import listdir, symlink, unlink
+from os.path import expanduser, isdir, isfile, islink, join, samefile
+import argparse
+parser = argparse.ArgumentParser(
+    prog="maven-settings",
+    version="1.0",
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    description="""
+Use to switch your Maven settings file (~/.m2/settings.xml).
+This script creates a symlink to settings.xml pointing to your chosen settings file.
+
+1. Create ~/.m2/settings folder
+2. Add settings.xml files to the folder and name the files accordingly:
+   companyA.xml, companyB.xml, maven-uk.xml etc.
+3. Make sure you don't have an actual settings.xml file in the ~/.m2 folder
+4. Run this script to switch between different settings files, the script will create a symlink to settings.xml""")
+
+args = parser.parse_args()
+
+home = expanduser("~")
+settings_path = home + "/.m2/settings/"
+settings_file = home + "/.m2/settings.xml"
+files_raw, files = [], []
+current = -1
+
+
+def number(s):
+    try:
+        return int(s)
+    except ValueError:
+        return -1
+
+
+def ask_setting():
+    print "\nMaven settings"
+    print "==============\n"
+
+    for idx, val in enumerate(files, start=1):
+        if current == idx:
+            val += " (*)"
+        print "{0}. {1}".format(idx, val.replace("-", " ").title())
+
+    print "0. Exit\n"
+    print "(*) = Currently selected"
+    setting = number(raw_input("Choose Maven settings file: "))
+
+    if setting == 0:
+        exit(0)
+    elif setting < 1 or setting > len(files):
+        print "\nPlease enter a valid number {0} or 0 to exit.".format(range(1, len(files) + 1))
+        ask_setting()
+    else:
+        if islink(settings_file):
+            try:
+                unlink(settings_file)
+            except OSError:
+                pass
+        new_settings_file = settings_path + files_raw[setting - 1]
+        symlink(new_settings_file, settings_file)
+        print "Linked {0} to {1}".format(new_settings_file, settings_file)
+        exit(0)
+
+
+def main():
+    if not isdir(settings_path):
+        print "Please create ~/.m2/settings folder. For more information run this program with -h parameter."
+        exit(1)
+
+    if isfile(settings_file) and not islink(settings_file):
+        print "Error! settings.xml exists and is a file (not a symlink)."
+        print "Please add your settings.xml files to {0} and remove {1}".format(settings_path, settings_file)
+        exit(1)
+
+    global current, files_raw
+
+    files_raw = [f for f in listdir(settings_path) if isfile(join(settings_path, f))]
+
+    for idx, item in enumerate(files_raw):
+        files.append(item.replace(".xml", ""))
+        if islink(settings_file) and samefile(settings_path + item, settings_file):
+            current = idx + 1
+
+    ask_setting()
+
+if  __name__ == '__main__':
+    main()
