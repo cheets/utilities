@@ -1,0 +1,21 @@
+#!/bin/bash
+
+declare -a DEVICES=('wi-fi' 'thunderbolt ethernet')
+
+for DEVICE in "${DEVICES[@]}"
+do
+  STATUS=$(networksetup -getwebproxy "$DEVICE" | grep "Enabled: No")
+
+  if [ -n "$STATUS" ]; then
+    echo "Set proxy ON for $DEVICE"
+    sudo networksetup -setwebproxystate "$DEVICE" on
+    sudo networksetup -setftpproxystate "$DEVICE" on
+    sudo networksetup -setsecurewebproxystate "$DEVICE" on
+  else
+    echo "Set proxy OFF for $DEVICE"
+    sudo networksetup -setwebproxystate "$DEVICE" off
+    sudo networksetup -setftpproxystate "$DEVICE" off
+    sudo networksetup -setsecurewebproxystate "$DEVICE" off
+  fi
+done
+exit 0
